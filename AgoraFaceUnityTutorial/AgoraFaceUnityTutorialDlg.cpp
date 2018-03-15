@@ -383,7 +383,7 @@ inline void CAgoraFaceUnityTutorialDlg::uninitAgoraMedia()
 
 inline void CAgoraFaceUnityTutorialDlg::initFaceUnity()
 {
-#if 0
+#if 1
 	std::string strVersiono = m_FaceName.getVersion();
 	m_openGl.SetupPixelFormat(::GetDC(m_PicCtlLocal));
 	CRect rect;
@@ -617,9 +617,9 @@ DWORD CAgoraFaceUnityTutorialDlg::ThreadFaceUntiyDataProc(LPVOID lpParameter)
 			fileMedia.write((char*)frameYUV.get(), yuvBufferLen);
 			fileMedia.close();
 #else
-			//pObj->m_FaceName.RenderItems(frame);
+			pObj->m_FaceName.RenderItems(frame);
 			int rgbaLen = pObj->m_nWidth * pObj->m_nHeight * 4;
-			//pObj->m_openGl.Render(frame);
+			pObj->m_openGl.Render(frame);
 
 			std::tr1::shared_ptr<unsigned char> frameYUV1 = pObj->m_FaceName.ConvertBetweenBGRAandRGBA(frame);
 			fileMedia.write((char*)frameYUV1.get(), rgbaLen);
