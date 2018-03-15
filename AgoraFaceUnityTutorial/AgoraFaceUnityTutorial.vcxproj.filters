@@ -117,6 +117,9 @@
     <ClInclude Include="FrameFrequencyCtrl.h">
       <Filter>Uitl</Filter>
     </ClInclude>
+    <ClInclude Include="AgoraOpenGL.h">
+      <Filter>FaceUnityObject</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AgoraFaceUnityTutorial.cpp">
@@ -181,6 +184,9 @@
     </ClCompile>
     <ClCompile Include="FrameFrequencyCtrl.cpp">
       <Filter>Uitl</Filter>
+    </ClCompile>
+    <ClCompile Include="AgoraOpenGL.cpp">
+      <Filter>FaceUnityObject</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

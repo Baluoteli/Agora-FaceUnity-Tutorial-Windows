@@ -43,8 +43,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\AgoraSDK\include;..\ThridParty\DirectShow\Include;..\ThirdParty\GL;..\openssl\include;..\FaceUnitySDK\include</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);..\AgoraSDK\lib;..\ThirdParty\DirectShow\Lib\X86;..\ThirdParty\GL;..\openssl\lib;..\FaceUnitySDK\Win32</LibraryPath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\AgoraSDK\include;..\ThridParty\DirectShow\Include;..\ThridParty\GL1;..\openssl\include;..\FaceUnitySDK\include</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);..\AgoraSDK\lib;..\ThridParty\DirectShow\Lib\X86;..\ThridParty\GL1;..\openssl\lib;..\FaceUnitySDK\Win32</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -60,6 +60,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -113,6 +115,7 @@
     <ClInclude Include="AgoraFaceUnityTutorial.h" />
     <ClInclude Include="AgoraFaceUnityTutorialDlg.h" />
     <ClInclude Include="AgoraObject.h" />
+    <ClInclude Include="AgoraOpenGL.h" />
     <ClInclude Include="AGResourceVisitor.h" />
     <ClInclude Include="AGSliderCtrl.h" />
     <ClInclude Include="CameraDS.h" />
@@ -141,6 +144,7 @@
     <ClCompile Include="AgoraFaceUnityTutorial.cpp" />
     <ClCompile Include="AgoraFaceUnityTutorialDlg.cpp" />
     <ClCompile Include="AgoraObject.cpp" />
+    <ClCompile Include="AgoraOpenGL.cpp" />
     <ClCompile Include="AGResourceVisitor.cpp" />
     <ClCompile Include="AGSliderCtrl.cpp" />
     <ClCompile Include="CameraDS.cpp">

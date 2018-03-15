@@ -9,6 +9,7 @@
 #include "commonfun.h"
 #include "FrameFrequencyCtrl.h"
 using namespace plusFCL_BTL;
+#include "YUVTrans.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -68,7 +69,7 @@ void CAgoraFaceUnityTutorialDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_BUTTON_JoinChannel, m_AgBtnJoinChannel);
 	DDX_Control(pDX, IDC_STATIC_Local, m_PicCtlLocal);
 	DDX_Control(pDX, IDC_STATIC_Remote, m_PicCtlRemote);
-	DDX_Control(pDX, IDC_BUTTON_Sticker_0,m_AgBtnSticker_0);
+	DDX_Control(pDX, IDC_BUTTON_Sticker_0, m_AgBtnSticker_0);
 	DDX_Control(pDX, IDC_BUTTON_Sticker_1, m_AgBtnSticker_1);
 	DDX_Control(pDX, IDC_BUTTON_Sticker_2, m_AgBtnSticker_2);
 	DDX_Control(pDX, IDC_BUTTON_Sticker_3, m_AgBtnSticker_3);
@@ -83,14 +84,15 @@ void CAgoraFaceUnityTutorialDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_BUTTON_Filter_3, m_AgBtnFilter_3);
 	DDX_Control(pDX, IDC_BUTTON_Filter_4, m_AgBtnFilter_4);
 	DDX_Control(pDX, IDC_BUTTON_Filter_5, m_AgBtnFilter_5);
+	DDX_Control(pDX, IDC_Check_Sticker, m_BtnCheckSticker);
 	DDX_Control(pDX, IDC_Check_Beauty, m_BtnCheckBeauty);
-	DDX_Control(pDX, IDC_Check_Strider, m_BtnCheckSticker);
 }
 
 BEGIN_MESSAGE_MAP(CAgoraFaceUnityTutorialDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_CLOSE()
+	ON_WM_TIMER()
 	ON_WM_QUERYDRAGICON()
 	ON_CBN_SELCHANGE(IDC_COMBO_CameraDS, &CAgoraFaceUnityTutorialDlg::OnCbnSelchangeComboCamerads)
 	ON_BN_CLICKED(IDC_BUTTON_JoinChannel, &CAgoraFaceUnityTutorialDlg::OnBnClickedButtonJoinchannel)
@@ -122,7 +124,7 @@ BEGIN_MESSAGE_MAP(CAgoraFaceUnityTutorialDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_Filter_3, &CAgoraFaceUnityTutorialDlg::OnBnClickedButtonFilter3)
 	ON_BN_CLICKED(IDC_BUTTON_Filter_4, &CAgoraFaceUnityTutorialDlg::OnBnClickedButtonFilter4)
 	ON_BN_CLICKED(IDC_BUTTON_Filter_5, &CAgoraFaceUnityTutorialDlg::OnBnClickedButtonFilter5)
-	ON_BN_CLICKED(IDC_CHECK_Sticker, &CAgoraFaceUnityTutorialDlg::OnBnClickedCheckSticker)
+	ON_BN_CLICKED(IDC_Check_Sticker, &CAgoraFaceUnityTutorialDlg::OnBnClickedCheckSticker)
 	ON_BN_CLICKED(IDC_Check_Beauty, &CAgoraFaceUnityTutorialDlg::OnBnClickedCheckBeauty)
 END_MESSAGE_MAP()
 
@@ -381,6 +383,15 @@ inline void CAgoraFaceUnityTutorialDlg::uninitAgoraMedia()
 
 inline void CAgoraFaceUnityTutorialDlg::initFaceUnity()
 {
+#if 0
+	std::string strVersiono = m_FaceName.getVersion();
+	m_openGl.SetupPixelFormat(::GetDC(m_PicCtlLocal));
+	CRect rect;
+	GetClientRect(&rect);
+	m_openGl.Init(rect.right, rect.bottom);
+	SetTimer(1, 40, 0);
+#endif
+
 	m_FaceName.Init(m_nWidth,m_nHeight);
 
 	if (nullptr == m_ThreadData){
@@ -484,43 +495,54 @@ void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker1()
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker2()
 {
 	// TODO:  在此添加控件通知处理程序代码
-	//m_FaceName.SetCurrentBundle(2);
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker3()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	m_FaceName.SetCurrentBundle(2);
+	is_need_draw_landmarks = false;
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker4()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	m_FaceName.SetCurrentBundle(3);
+	is_need_draw_landmarks = false;
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker5()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	m_FaceName.SetCurrentBundle(4);
+	is_need_draw_landmarks = false;
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker6()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	m_FaceName.SetCurrentBundle(5);
+	is_need_draw_landmarks = false;
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker7()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	m_FaceName.SetCurrentBundle(6);
+	is_need_draw_landmarks = false;
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker8()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	m_FaceName.SetCurrentBundle(7);
+	is_need_draw_landmarks = false;
 }
 
 
@@ -563,6 +585,16 @@ void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonFilter5()
 DWORD CAgoraFaceUnityTutorialDlg::ThreadFaceUntiyDataProc(LPVOID lpParameter)
 {
 	CAgoraFaceUnityTutorialDlg *pObj = (CAgoraFaceUnityTutorialDlg*)lpParameter;
+	CYUVTrans yuvTrans;
+	LPBYTE yuvBuffer = new BYTE[0x800000];
+	SIZE_T yuvBufferLen = pObj->m_nWidth * pObj->m_nHeight * 3 / 2;
+	CFileIO fileMedia;
+#ifdef _DEBUG
+	fileMedia.openMedia("D:\\Agora_programe\\baluoteli\\Agora-FaceUnity-Tutorial-Windows\\Debug\\cameraYuv.yuv");
+#else
+	fileMedia.openMedia("D:\\Agora_programe\\baluoteli\\Agora-FaceUnity-Tutorial-Windows\\Release\\cameraYuv.yuv");
+#endif
+
 	if (pObj){
 
 		CHighResoluteFrameCtrl framectrl;
@@ -571,17 +603,41 @@ DWORD CAgoraFaceUnityTutorialDlg::ThreadFaceUntiyDataProc(LPVOID lpParameter)
 		while (!pObj->m_bTerminated){
 			framectrl.wait();
 
-			std::tr1::shared_ptr<unsigned char> frame  = pObj->m_FaceName.QueryFrame();
-			if (!frame) continue;
+			std::tr1::shared_ptr<unsigned char> frame = pObj->m_FaceName.QueryFrame();
+#if 0
+			if (!frame)
+				OutputDebugStringA("QueryFrame failed..\n");
 
-			
+			if ( !yuvTrans.RGB24ToI420((LPBYTE)frame.get(), yuvBuffer, yuvBufferLen, pObj->m_nWidth, pObj->m_nHeight))
+				OutputDebugStringA("RGB24ToI420 failed..\n");
+
+			std::tr1::shared_ptr<unsigned char> frameYUV = (std::tr1::shared_ptr<unsigned char>)yuvBuffer;
+			pObj->m_FaceName.RenderItems(frameYUV);
+
+			fileMedia.write((char*)frameYUV.get(), yuvBufferLen);
+			fileMedia.close();
+#else
+			//pObj->m_FaceName.RenderItems(frame);
+			int rgbaLen = pObj->m_nWidth * pObj->m_nHeight * 4;
+			//pObj->m_openGl.Render(frame);
+
+			std::tr1::shared_ptr<unsigned char> frameYUV1 = pObj->m_FaceName.ConvertBetweenBGRAandRGBA(frame);
+			fileMedia.write((char*)frameYUV1.get(), rgbaLen);
+
+			//pObj->Invalidate(FALSE);
+#endif
 		}
 	}
+
+	fileMedia.close();
+	if (yuvBuffer)
+		delete[] yuvBuffer;
+	yuvBufferLen = 0;
 
 	return TRUE;
 }
 
-void CAgoraFaceUnityTutorialDlg::onClose()
+void CAgoraFaceUnityTutorialDlg::OnClose()
 {
 	//TO DO
 	if (m_lpAgoraObject)
@@ -594,10 +650,19 @@ void CAgoraFaceUnityTutorialDlg::onClose()
 	uninitAgoraMedia();
 	uninitCtrl();
 
-	return CDialogEx::OnCancel();
+	CDialogEx::OnClose();
 }
 
+void CAgoraFaceUnityTutorialDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	if (nIDEvent == 1){
 
+		std::tr1::shared_ptr<unsigned char>frame;
+	//	m_openGl.Render(frame);
+	}
+
+	CDialogEx::OnTimer(nIDEvent);
+}
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedCheckSticker()
 {

@@ -38,6 +38,7 @@ namespace NamaExampleNameSpace
 		void RenderItems(std::tr1::shared_ptr<unsigned char> frame);
 		std::tr1::shared_ptr<unsigned char> RenderEx();	
 		void DrawLandmarks(std::tr1::shared_ptr<unsigned char> frame);
+		std::string getVersion();
 	private:
 		void CreateBundle();
 		void CreateBundle(const int idx);		

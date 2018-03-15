@@ -21,7 +21,7 @@ public:
 public:
 	static bool generatorFile(const std::string &path);
 
-protected:
+public:
 	int write(char *bufferIn, int bufferLen);
 
 private:

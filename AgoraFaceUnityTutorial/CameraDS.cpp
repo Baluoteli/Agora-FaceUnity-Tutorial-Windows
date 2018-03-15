@@ -86,8 +86,8 @@ bool CCameraDS::OpenCamera(int nCamID, bool bDisplayProperties, int nWidth, int 
 	AM_MEDIA_TYPE   mt;
 	ZeroMemory(&mt, sizeof(AM_MEDIA_TYPE));
 	mt.majortype = MEDIATYPE_Video;
-	mt.subtype = MEDIASUBTYPE_RGB24;
-	//mt.subtype = MEDIASUBTYPE_RGB32;
+	//mt.subtype = MEDIASUBTYPE_RGB24;
+	mt.subtype = MEDIASUBTYPE_RGB32;
 	mt.formattype = FORMAT_VideoInfo;
 	hr = m_pSampleGrabber->SetMediaType(&mt);
 	MYFREEMEDIATYPE(mt);

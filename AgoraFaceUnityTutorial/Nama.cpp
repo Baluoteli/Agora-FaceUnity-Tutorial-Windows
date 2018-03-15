@@ -59,7 +59,7 @@ namespace NamaExampleNameSpace
 
 std::string Nama::_filters[6] = { "origin", "delta", "electric", "slowlived", "tokyo", "warm" };
 
-Nama::Nama()
+Nama::Nama()	
 	:m_frameID(0),
 	m_curBundleIdx(0),
 	m_mode(PROP),
@@ -79,7 +79,7 @@ Nama::Nama()
 	m_redLevel(0.6f),
 	m_faceShapeLevel(0.0f)
 {
-	m_curCameraIdx = 0;
+	m_curCameraIdx = 2;
 	m_cap = std::tr1::shared_ptr<CCameraDS>(new CCameraDS);
 }
 
@@ -145,7 +145,7 @@ void Nama::Init(const int width, const int height)
 			exit(2);
 		}		
 		fuSetup(reinterpret_cast<float*>(&v3data[0]), NULL, g_auth_package, sizeof(g_auth_package));
-		
+
 		std::vector<char> anim_model_data;
 		if (false == LoadBundle(g_fuDataDir + g_anim_model, anim_model_data))
 		{
@@ -376,7 +376,7 @@ void Nama::RenderItems(std::tr1::shared_ptr<unsigned char> frame)
 		{
 			int handle[2] = { m_beautyHandles, m_propHandles[m_curBundleIdx] };
 			//支持的格式有FU_FORMAT_BGRA_BUFFER 、 FU_FORMAT_NV21_BUFFER 、FU_FORMAT_I420_BUFFER 、FU_FORMAT_RGBA_BUFFER			
-			fuRenderItemsEx2(FU_FORMAT_RGBA_BUFFER, reinterpret_cast<int*>(frame.get()), FU_FORMAT_BGRA_BUFFER, reinterpret_cast<int*>(frame.get()), 
+			fuRenderItemsEx2(FU_FORMAT_RGBA_BUFFER, reinterpret_cast<int*>(frame.get()), FU_FORMAT_BGRA_BUFFER, reinterpret_cast<int*>(frame.get()),
 				m_frameWidth, m_frameHeight, m_frameID, handle, 2, NAMA_RENDER_FEATURE_FULL | NAMA_RENDER_OPTION_FLIP_X, NULL);			
 		}
 		else if (1 == m_isDrawProp && 0 == m_isBeautyOn)
@@ -396,6 +396,11 @@ void Nama::RenderItems(std::tr1::shared_ptr<unsigned char> frame)
 	default:
 		break;
 	}
+
+	int nErrCode = fuGetSystemError();
+	char logMsg[128] = { '\0' };
+	sprintf_s(logMsg, "fuGetSystemError() : %d\n", nErrCode);
+	OutputDebugStringA(logMsg);
 
 	++m_frameID;	
 	return;
@@ -428,6 +433,11 @@ void Nama::DrawLandmarks(std::tr1::shared_ptr<unsigned char> frame)
 		DrawPoint(frame, static_cast<int>(landmarks[2 * i]), static_cast<int>(landmarks[2 * i + 1]));
 	}
 
+}
+
+std::string Nama::getVersion()
+{
+	return fuGetVersion();
 }
 
 void Nama::DrawPoint(std::tr1::shared_ptr<unsigned char> frame, int x, int y, unsigned char r, unsigned char g, unsigned char b)

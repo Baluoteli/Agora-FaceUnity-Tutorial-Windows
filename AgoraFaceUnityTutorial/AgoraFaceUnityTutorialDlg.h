@@ -11,6 +11,8 @@
 
 #include "CameraDS.h"
 #include "Nama.h"
+#include "afxwin.h"
+#include "AgoraOpenGL.h"
 
 // CAgoraFaceUnityTutorialDlg ¶Ô»°¿ò
 class CAgoraFaceUnityTutorialDlg : public CDialogEx
@@ -33,7 +35,8 @@ protected:
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
-	afx_msg void onClose();
+	afx_msg void OnClose();
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 
@@ -55,6 +58,9 @@ protected:
 	afx_msg void OnBnClickedButtonFilter3();
 	afx_msg void OnBnClickedButtonFilter4();
 	afx_msg void OnBnClickedButtonFilter5();
+
+	afx_msg void OnBnClickedCheckSticker();
+	afx_msg void OnBnClickedCheckBeauty();
 
 	LRESULT onJoinChannelSuccess(WPARAM wParam, LPARAM lParam);
 	LRESULT onWarning(WPARAM wParam, LPARAM lParam);
@@ -117,18 +123,18 @@ private:
 	CAGButton m_AgBtnSticker_6;
 	CAGButton m_AgBtnSticker_7;
 	CAGButton m_AgBtnSticker_8; 
-	CButton m_BtnCheckSticker;
-
+	
 	CAGButton m_AgBtnFilter_0;
 	CAGButton m_AgBtnFilter_1;
 	CAGButton m_AgBtnFilter_2;
 	CAGButton m_AgBtnFilter_3;
 	CAGButton m_AgBtnFilter_4;
 	CAGButton m_AgBtnFilter_5;
+	
+	CButton m_BtnCheckSticker;
 	CButton m_BtnCheckBeauty;
 
 	HANDLE m_ThreadData;
-public:
-	afx_msg void OnBnClickedCheckSticker();
-	afx_msg void OnBnClickedCheckBeauty();
+	//CClientDC *pmDC;
+	CAgoraOpenGl m_openGl;
 };
