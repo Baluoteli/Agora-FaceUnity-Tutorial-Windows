@@ -2,8 +2,11 @@
 
 #include <atlcoll.h>
 #include <IAgoraRtcEngine.h>
-
+#include "IAgoraMediaEngine.h"
 #include "AGEngineEventHandler.h"
+using namespace agora::media;
+#include "ExtendVideoFrameObserver.h"
+#include "ExtendAudioFrameObserver.h"
 
 // #define ENABLE_CODEC	1
 
@@ -138,9 +141,11 @@ public:
 	BOOL EnableSEIPush(BOOL bEnable, COLORREF crBack);
 
 	BOOL EnableH264Compatible();
-	BOOL SetAudioAes(BOOL bEnable /*= false */);
+	BOOL SetAudioAEC(BOOL bEnable /*= false */);
 	BOOL AdjustVolume(int nRcdVol, int nPlaybackVol, int nMixVol);
 	void GetVolume(int *nRcdVol, int *nPlaybackVol, int *nMixVol);
+
+	BOOL EnableExtendVideoCapture(BOOL bEnable, IVideoFrameObserver* lpVideoFrameObserver);
 
 	int GetAudioMixingPos();
 	int GetAudioMixingDuration();

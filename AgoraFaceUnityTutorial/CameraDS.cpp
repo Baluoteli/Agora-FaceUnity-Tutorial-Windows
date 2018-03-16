@@ -523,7 +523,6 @@ void CCameraDS::SetCrossBar()
 
 std::tr1::shared_ptr<unsigned char> CCameraDS::QueryFrame()
 {
-
 	long evCode;
 	long size = 0;
 

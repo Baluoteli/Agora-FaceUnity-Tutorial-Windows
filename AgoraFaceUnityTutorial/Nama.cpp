@@ -79,7 +79,7 @@ Nama::Nama()
 	m_redLevel(0.6f),
 	m_faceShapeLevel(0.0f)
 {
-	m_curCameraIdx = 2;
+	m_curCameraIdx = 5;
 	m_cap = std::tr1::shared_ptr<CCameraDS>(new CCameraDS);
 }
 
@@ -405,6 +405,46 @@ void Nama::RenderItems(std::tr1::shared_ptr<unsigned char> frame)
 	++m_frameID;	
 	return;
 }
+
+void Nama::RenderItems(unsigned char* pCameraBuffer)
+{
+	switch (m_mode)
+	{
+	case PROP:
+		if (1 == m_isBeautyOn && 1 == m_isDrawProp)
+		{
+			int handle[2] = { m_beautyHandles, m_propHandles[m_curBundleIdx] };
+			//支持的格式有FU_FORMAT_BGRA_BUFFER 、 FU_FORMAT_NV21_BUFFER 、FU_FORMAT_I420_BUFFER 、FU_FORMAT_RGBA_BUFFER			
+			fuRenderItemsEx2(FU_FORMAT_RGBA_BUFFER, reinterpret_cast<int*>(pCameraBuffer), FU_FORMAT_BGRA_BUFFER, reinterpret_cast<int*>(pCameraBuffer),
+				m_frameWidth, m_frameHeight, m_frameID, handle, 2, NAMA_RENDER_FEATURE_FULL | NAMA_RENDER_OPTION_FLIP_X, NULL);
+		}
+		else if (1 == m_isDrawProp && 0 == m_isBeautyOn)
+		{
+			fuRenderItemsEx2(FU_FORMAT_RGBA_BUFFER, reinterpret_cast<int*>(pCameraBuffer), FU_FORMAT_BGRA_BUFFER, reinterpret_cast<int*>(pCameraBuffer),
+				m_frameWidth, m_frameHeight, m_frameID, &m_propHandles[m_curBundleIdx], 1, NAMA_RENDER_FEATURE_FULL | NAMA_RENDER_OPTION_FLIP_X, NULL);
+		}
+		else if (1 == m_isBeautyOn && 0 == m_isDrawProp)
+		{
+			fuRenderItemsEx2(FU_FORMAT_RGBA_BUFFER, reinterpret_cast<int*>(pCameraBuffer), FU_FORMAT_BGRA_BUFFER, reinterpret_cast<int*>(pCameraBuffer),
+				m_frameWidth, m_frameHeight, m_frameID, &m_beautyHandles, 1, NAMA_RENDER_FEATURE_FULL | NAMA_RENDER_OPTION_FLIP_X, NULL);
+		}
+		break;
+	case LANDMARK:
+		//DrawLandmarks(frame);
+		break;
+	default:
+		break;
+	}
+
+	int nErrCode = fuGetSystemError();
+	char logMsg[128] = { '\0' };
+	sprintf_s(logMsg, "fuGetSystemError() : %d\n", nErrCode);
+	OutputDebugStringA(logMsg);
+
+	++m_frameID;
+	return;
+}
+
 //只调用nama里的美颜模块
 std::tr1::shared_ptr<unsigned char> Nama::RenderEx()
 {
@@ -432,7 +472,6 @@ void Nama::DrawLandmarks(std::tr1::shared_ptr<unsigned char> frame)
 	{
 		DrawPoint(frame, static_cast<int>(landmarks[2 * i]), static_cast<int>(landmarks[2 * i + 1]));
 	}
-
 }
 
 std::string Nama::getVersion()

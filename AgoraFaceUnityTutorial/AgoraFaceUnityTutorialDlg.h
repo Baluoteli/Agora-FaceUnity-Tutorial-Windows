@@ -13,6 +13,8 @@
 #include "Nama.h"
 #include "afxwin.h"
 #include "AgoraOpenGL.h"
+#include "YUVTrans.h"
+#include "ExtendVideoFrameObserver.h"
 
 // CAgoraFaceUnityTutorialDlg ¶Ô»°¿ò
 class CAgoraFaceUnityTutorialDlg : public CDialogEx
@@ -61,6 +63,7 @@ protected:
 
 	afx_msg void OnBnClickedCheckSticker();
 	afx_msg void OnBnClickedCheckBeauty();
+	afx_msg void OnBnClickedCheckFilter();
 
 	LRESULT onJoinChannelSuccess(WPARAM wParam, LPARAM lParam);
 	LRESULT onWarning(WPARAM wParam, LPARAM lParam);
@@ -87,7 +90,7 @@ protected:
 	inline void initFaceUnity();
 	inline void uninitFaceUnity();
 
-	static DWORD ThreadFaceUntiyDataProc(LPVOID lpParameter);
+	//static DWORD ThreadFaceUntiyDataProc(LPVOID lpParameter);
 
 private:
 	bool m_bTerminated;
@@ -109,10 +112,11 @@ private:
 	CAgoraObject* m_lpAgoraObject;
 	IRtcEngine* m_lpRtcEngine;
 
-	NamaExampleNameSpace::Nama m_FaceName;
+	NamaExampleNameSpace::Nama m_FaceNama;
 	const int m_nWidth = 640;
 	const int m_nHeight = 480;
 	bool is_need_draw_landmarks;
+	bool m_isJoinChannel;
 
 	CAGButton m_AgBtnSticker_0;
 	CAGButton m_AgBtnSticker_1;
@@ -133,8 +137,24 @@ private:
 	
 	CButton m_BtnCheckSticker;
 	CButton m_BtnCheckBeauty;
+	CButton m_BtnCheckFilter;
+
+	CSliderCtrl m_SliderBeautyBlur;
+	CSliderCtrl m_SliderBeautyColor;
+	CSliderCtrl m_SliderBeautyRed;
 
 	HANDLE m_ThreadData;
-	//CClientDC *pmDC;
 	CAgoraOpenGl m_openGl;
+	CFileIO m_mediafile;
+
+	LPBYTE m_lpBufferYUV;
+	int m_nLenYUV;
+	LPBYTE m_lpBufferYUVRotate;
+	CYUVTrans m_yuvTrans;
+
+	CExtendVideoFrameObserver m_ExtendVideoObserver;
+public:
+	afx_msg void OnNMCustomdrawBeauty0(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMCustomdrawBeauty1(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMCustomdrawBeauty2(NMHDR *pNMHDR, LRESULT *pResult);
 };

@@ -120,6 +120,12 @@
     <ClInclude Include="AgoraOpenGL.h">
       <Filter>FaceUnityObject</Filter>
     </ClInclude>
+    <ClInclude Include="BufferQueue.h">
+      <Filter>Buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="VideoPackageQueue.h">
+      <Filter>Buffer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AgoraFaceUnityTutorial.cpp">
@@ -187,6 +193,12 @@
     </ClCompile>
     <ClCompile Include="AgoraOpenGL.cpp">
       <Filter>FaceUnityObject</Filter>
+    </ClCompile>
+    <ClCompile Include="BufferQueue.cpp">
+      <Filter>Buffer</Filter>
+    </ClCompile>
+    <ClCompile Include="VideoPackageQueue.cpp">
+      <Filter>Buffer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -7,6 +7,7 @@
 using namespace agora;
 using namespace agora::tools;
 
+#include "AgoraBase.h"
 
 CAgoraObject *CAgoraObject::m_lpAgoraObject = NULL;
 IRtcEngine	*CAgoraObject::m_lpAgoraEngine = NULL;
@@ -868,7 +869,32 @@ BOOL CAgoraObject::AdjustVolume(int nRcdVol, int nPlaybackVol, int nMixVol)
 	return nRet == 0 ? TRUE : FALSE;
 }
 
-BOOL CAgoraObject::SetAudioAes(BOOL bEnable /*= false */)
+
+BOOL CAgoraObject::EnableExtendVideoCapture(BOOL bEnable, IVideoFrameObserver* lpVideoFrameObserver)
+{
+	agora::util::AutoPtr<agora::media::IMediaEngine> mediaEngine;
+	mediaEngine.queryInterface(m_lpAgoraEngine, INTERFACE_ID_TYPE::AGORA_IID_MEDIA_ENGINE);
+
+	int nRet = 0;
+	AParameter apm(*m_lpAgoraEngine);
+
+	if (mediaEngine.get() == NULL)
+		return FALSE;
+
+	if (bEnable && lpVideoFrameObserver != NULL) {
+		apm->setParameters("{\"che.video.local.camera_index\":1024}");
+		nRet = mediaEngine->registerVideoFrameObserver(lpVideoFrameObserver);
+	}
+	else {
+		nRet = mediaEngine->registerVideoFrameObserver(NULL);
+		apm->setParameters("{\"che.video.local.camera_index\":0}");
+	}
+
+	return nRet == 0 ? TRUE : FALSE;
+}
+
+
+BOOL CAgoraObject::SetAudioAEC(BOOL bEnable /*= false */)
 {
 	AParameter apm(*m_lpAgoraEngine);
 

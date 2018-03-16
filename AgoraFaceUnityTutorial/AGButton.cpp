@@ -167,7 +167,7 @@ void CAGButton::DrawBack(LPDRAWITEMSTRUCT lpDrawItemStruct, UINT nStat)
 		crBackColor = m_crBackPush;
 		break;
 	case AGBTN_DISABLE:
-		nImageIndex = 3;
+		nImageIndex = 0;
 		crBackColor = m_crBackDisable;
 		break;
 	default:

@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "VideoPackageQueue.h"
 #include "ExtendVideoFrameObserver.h"
 
 
@@ -17,7 +18,7 @@ bool CExtendVideoFrameObserver::onCaptureVideoFrame(VideoFrame& videoFrame)
 {
 	SIZE_T nBufferSize = 0x800000;
 
-	BOOL bSuccess = false;//::GetInstance()->PopVideoPackage(m_lpImageBuffer, &nBufferSize);
+	BOOL bSuccess = CVideoPackageQueue::GetInstance()->PopVideoPackage(m_lpImageBuffer, &nBufferSize);
 	if (!bSuccess)
 		return false;
 

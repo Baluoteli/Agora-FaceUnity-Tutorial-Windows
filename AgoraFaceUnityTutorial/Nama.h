@@ -36,6 +36,7 @@ namespace NamaExampleNameSpace
 		void ScissorFrameBuffer(std::tr1::shared_ptr<unsigned char> frame);
 		std::tr1::shared_ptr<unsigned char> ConvertBetweenBGRAandRGBA(std::tr1::shared_ptr<unsigned char> frame);
 		void RenderItems(std::tr1::shared_ptr<unsigned char> frame);
+		void RenderItems(unsigned char* pCameraBuffer);
 		std::tr1::shared_ptr<unsigned char> RenderEx();	
 		void DrawLandmarks(std::tr1::shared_ptr<unsigned char> frame);
 		std::string getVersion();

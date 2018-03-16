@@ -9,12 +9,14 @@
 #include "commonfun.h"
 #include "FrameFrequencyCtrl.h"
 using namespace plusFCL_BTL;
-#include "YUVTrans.h"
+#include "libyuv.h"
+#include "VideoPackageQueue.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
+#define HAVE_JPEG
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -56,6 +58,7 @@ CAgoraFaceUnityTutorialDlg::CAgoraFaceUnityTutorialDlg(CWnd* pParent /*=NULL*/)
 	is_need_draw_landmarks(FALSE)
 	, m_ThreadData(NULL)
 	, m_bTerminated(TRUE)
+	, m_isJoinChannel(FALSE)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -86,6 +89,10 @@ void CAgoraFaceUnityTutorialDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_BUTTON_Filter_5, m_AgBtnFilter_5);
 	DDX_Control(pDX, IDC_Check_Sticker, m_BtnCheckSticker);
 	DDX_Control(pDX, IDC_Check_Beauty, m_BtnCheckBeauty);
+	DDX_Control(pDX, IDC_Check_Filter, m_BtnCheckFilter);
+	DDX_Control(pDX, IDC_Beauty_0, m_SliderBeautyBlur);
+	DDX_Control(pDX, IDC_Beauty_1, m_SliderBeautyColor);
+	DDX_Control(pDX, IDC_Beauty_2, m_SliderBeautyRed);
 }
 
 BEGIN_MESSAGE_MAP(CAgoraFaceUnityTutorialDlg, CDialogEx)
@@ -126,6 +133,10 @@ BEGIN_MESSAGE_MAP(CAgoraFaceUnityTutorialDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_Filter_5, &CAgoraFaceUnityTutorialDlg::OnBnClickedButtonFilter5)
 	ON_BN_CLICKED(IDC_Check_Sticker, &CAgoraFaceUnityTutorialDlg::OnBnClickedCheckSticker)
 	ON_BN_CLICKED(IDC_Check_Beauty, &CAgoraFaceUnityTutorialDlg::OnBnClickedCheckBeauty)
+	ON_BN_CLICKED(IDC_Check_Filter, &CAgoraFaceUnityTutorialDlg::OnBnClickedCheckFilter)
+	ON_NOTIFY(NM_CUSTOMDRAW, IDC_Beauty_0, &CAgoraFaceUnityTutorialDlg::OnNMCustomdrawBeauty0)
+	ON_NOTIFY(NM_CUSTOMDRAW, IDC_Beauty_1, &CAgoraFaceUnityTutorialDlg::OnNMCustomdrawBeauty1)
+	ON_NOTIFY(NM_CUSTOMDRAW, IDC_Beauty_2, &CAgoraFaceUnityTutorialDlg::OnNMCustomdrawBeauty2)
 END_MESSAGE_MAP()
 
 
@@ -233,16 +244,23 @@ HCURSOR CAgoraFaceUnityTutorialDlg::OnQueryDragIcon()
 void CAgoraFaceUnityTutorialDlg::OnCbnSelchangeComboCamerads()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	m_FaceNama.m_curCameraIdx = m_ComCamera.GetCurSel();
+	m_FaceNama.ReOpenCamera();
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonJoinchannel()
 {
 	// TODO:  在此添加控件通知处理程序代码
-
 	CString strParam;
 	m_AgBtnJoinChannel.GetWindowTextW(strParam);
 	if (_T("JoinChannel") == strParam){
+
+		m_AgEditChannelName.GetWindowTextW(m_ChannelName);
+		gAgoraFaceUnityConfig.setChannelName(cs2s(m_ChannelName));
+		m_AgEditMediaUid.GetWindowTextW(strParam);
+		gAgoraFaceUnityConfig.setLoginUid(cs2s(strParam));
+		m_uMediaUid = str2long(cs2s(strParam));
 
 		m_lpAgoraObject->EnableLastmileTest(FALSE);
 		m_lpAgoraObject->SetClientRole(CLIENT_ROLE_TYPE::CLIENT_ROLE_BROADCASTER);
@@ -254,13 +272,15 @@ void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonJoinchannel()
 		m_lpAgoraObject->SetAppCert(s2cs(strAppcertificatId));
 
 		VideoCanvas vc;
-		vc.renderMode = RENDER_MODE_FIT;
+		vc.renderMode = RENDER_MODE_HIDDEN;
 		vc.uid = m_uMediaUid;
 		vc.view = m_PicCtlLocal;
 		m_lpRtcEngine->setupLocalVideo(vc);
 
 		int nVideoIndex = str2int(gAgoraFaceUnityConfig.getVideoSolutinIndex());
 		m_lpAgoraObject->SetVideoProfile(nVideoIndex, FALSE);//640*480 15 500
+
+		m_lpAgoraObject->EnableExtendVideoCapture(TRUE, &m_ExtendVideoObserver);
 
 		m_lpRtcEngine->startPreview();
 
@@ -277,6 +297,7 @@ void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonJoinchannel()
 	}
 	else if (_T("LeaveChannel") == strParam){
 
+		m_lpAgoraObject->EnableExtendVideoCapture(FALSE, NULL);
 		m_lpAgoraObject->LeaveCahnnel();
 		m_lpRtcEngine->stopPreview();
 	}
@@ -284,11 +305,11 @@ void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonJoinchannel()
 
 inline void CAgoraFaceUnityTutorialDlg::initCtrl()
 {
-	int nCameraCount = m_FaceName.CameraCount();
+	int nCameraCount = m_FaceNama.CameraCount();
 	for (int nCameraIndex = 0; nCameraCount > nCameraIndex; nCameraIndex++){
 
 		char szbuf[PATH_LEN] = { '\0' };
-		int nRes = m_FaceName.CameraName(nCameraIndex, szbuf, PATH_LEN);
+		int nRes = m_FaceNama.CameraName(nCameraIndex, szbuf, PATH_LEN);
 		if (nRes){
 
 			m_ComCamera.AddString(s2cs(szbuf));
@@ -305,36 +326,59 @@ inline void CAgoraFaceUnityTutorialDlg::initCtrl()
 	m_AgEditMediaUid.SetWindowTextW(csParam);
 	m_AgEditChannelName.SetWindowTextW(m_ChannelName);
 	m_AgBtnSticker_0.SetBackImage(IDB_BITMAP_Stride_0);
-	m_AgBtnSticker_0.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnSticker_1.SetBackImage(IDB_BITMAP_Stride_1);
-	m_AgBtnSticker_1.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnSticker_2.SetBackImage(IDB_BITMAP_Stride_2);
-	m_AgBtnSticker_2.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnSticker_3.SetBackImage(IDB_BITMAP_Stride_3);
-	m_AgBtnSticker_3.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnSticker_4.SetBackImage(IDB_BITMAP_Stride_4);
-	m_AgBtnSticker_4.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnSticker_5.SetBackImage(IDB_BITMAP_Stride_5);
-	m_AgBtnSticker_5.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnSticker_6.SetBackImage(IDB_BITMAP_Stride_6);
-	m_AgBtnSticker_6.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnSticker_7.SetBackImage(IDB_BITMAP_Stride_7);
-	m_AgBtnSticker_7.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnSticker_8.SetBackImage(IDB_BITMAP_Stride_8);
-	m_AgBtnSticker_8.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 
 	m_AgBtnFilter_0.SetBackImage(IDB_BITMAP_Filter_0);
-	m_AgBtnFilter_0.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnFilter_1.SetBackImage(IDB_BITMAP_Filter_1);
-	m_AgBtnFilter_1.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnFilter_2.SetBackImage(IDB_BITMAP_Filter_2);
-	m_AgBtnFilter_2.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnFilter_3.SetBackImage(IDB_BITMAP_Filter_3);
-	m_AgBtnFilter_3.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnFilter_4.SetBackImage(IDB_BITMAP_Filter_4);
-	m_AgBtnFilter_4.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnFilter_5.SetBackImage(IDB_BITMAP_Filter_5);
+
+	m_AgBtnSticker_0.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+	m_AgBtnSticker_1.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+	m_AgBtnSticker_2.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+	m_AgBtnSticker_3.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+	m_AgBtnSticker_4.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+	m_AgBtnSticker_5.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+	m_AgBtnSticker_6.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+	m_AgBtnSticker_7.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+	m_AgBtnSticker_8.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+
+	m_AgBtnFilter_0.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+	m_AgBtnFilter_1.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+	m_AgBtnFilter_2.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+	m_AgBtnFilter_3.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+	m_AgBtnFilter_4.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
 	m_AgBtnFilter_5.SetBackColor(RGB(0, 160, 239), RGB(255, 255, 0), RGB(255, 128, 128), RGB(0, 160, 239));
+
+	m_AgBtnSticker_0.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+	m_AgBtnSticker_1.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+	m_AgBtnSticker_2.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+	m_AgBtnSticker_3.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+	m_AgBtnSticker_4.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+	m_AgBtnSticker_5.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+	m_AgBtnSticker_6.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+	m_AgBtnSticker_7.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+	m_AgBtnSticker_8.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+
+	m_AgBtnFilter_0.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+	m_AgBtnFilter_1.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+	m_AgBtnFilter_2.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+	m_AgBtnFilter_3.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+	m_AgBtnFilter_4.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+	m_AgBtnFilter_5.SwitchButtonStatus(CAGButton::AGBTN_DISABLE);
+
+	m_SliderBeautyBlur.SetRange(0, 100, TRUE);
+	m_SliderBeautyColor.SetRange(0, 100, TRUE);
+	m_SliderBeautyRed.SetRange(0, 100, TRUE);
 }
 
 inline void CAgoraFaceUnityTutorialDlg::uninitCtrl()
@@ -383,27 +427,37 @@ inline void CAgoraFaceUnityTutorialDlg::uninitAgoraMedia()
 
 inline void CAgoraFaceUnityTutorialDlg::initFaceUnity()
 {
-#if 1
-	std::string strVersiono = m_FaceName.getVersion();
+	//m_FaceNama的 资源申请 和 数据的逻辑处理 都必须放在同一个线程里面.
+	m_mediafile.openMedia(getAbsoluteDir() + "capture.yuv");
+
+	std::string strVersiono = m_FaceNama.getVersion();
 	m_openGl.SetupPixelFormat(::GetDC(m_PicCtlLocal));
 	CRect rect;
 	GetClientRect(&rect);
 	m_openGl.Init(rect.right, rect.bottom);
+	m_FaceNama.Init(m_nWidth,m_nHeight);
+
+	m_nLenYUV = m_nWidth * m_nHeight * 3 / 2;
+	m_lpBufferYUV = new unsigned char[m_nLenYUV];
+	m_lpBufferYUVRotate = new unsigned char[m_nLenYUV];
+	ZeroMemory(m_lpBufferYUVRotate, m_nLenYUV);
+	ZeroMemory(m_lpBufferYUV,m_nLenYUV);
+	CVideoPackageQueue::GetInstance()->SetVideoFrameLen(m_nLenYUV);
+
 	SetTimer(1, 40, 0);
-#endif
-
-	m_FaceName.Init(m_nWidth,m_nHeight);
-
-	if (nullptr == m_ThreadData){
-
-		m_bTerminated = FALSE;
-		DWORD threadID = 0;
-		m_ThreadData = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ThreadFaceUntiyDataProc, this, 0, &threadID);
-	}
 }
 
 inline void CAgoraFaceUnityTutorialDlg::uninitFaceUnity()
 {
+	KillTimer(1);
+	if (m_lpBufferYUV)
+		delete[] m_lpBufferYUV;
+
+	if (m_lpBufferYUVRotate)
+		delete[] m_lpBufferYUVRotate;
+
+	m_nLenYUV = 0;
+
 	if (!m_bTerminated)
 		m_bTerminated = true;
 
@@ -411,97 +465,116 @@ inline void CAgoraFaceUnityTutorialDlg::uninitFaceUnity()
 	TerminateThread(m_ThreadData,dExitCode);
 	CloseHandle(m_ThreadData);
 	m_ThreadData = nullptr;
+	
+	m_mediafile.close();
 }
 
 LRESULT CAgoraFaceUnityTutorialDlg::onJoinChannelSuccess(WPARAM wParam, LPARAM lParam)
 {
+	m_isJoinChannel = true;
+	OutputDebugStringA(__FUNCTION__);
 	return TRUE;
 }
 
 LRESULT CAgoraFaceUnityTutorialDlg::onWarning(WPARAM wParam, LPARAM lParam)
 {
+	OutputDebugStringA(__FUNCTION__);
 	return TRUE;
 }
 
 LRESULT CAgoraFaceUnityTutorialDlg::onError(WPARAM wParam, LPARAM lParam)
 {
+	OutputDebugStringA(__FUNCTION__);
 	return TRUE;
 }
 
 LRESULT CAgoraFaceUnityTutorialDlg::onLeaveChannel(WPARAM wParam, LPARAM lParam)
 {
+	m_isJoinChannel = false;
+	OutputDebugStringA(__FUNCTION__);
 	return TRUE;
 }
 
 LRESULT CAgoraFaceUnityTutorialDlg::onRequestChannelKey(WPARAM wParam, LPARAM lParam)
 {
+	OutputDebugStringA(__FUNCTION__);
 	return TRUE;
 }
 
 LRESULT CAgoraFaceUnityTutorialDlg::onLastMileQuality(WPARAM wParam, LPARAM lParam)
 {
+	OutputDebugStringA(__FUNCTION__);
 	return TRUE;
 }
 
 LRESULT CAgoraFaceUnityTutorialDlg::onFirstLocalVideoFrame(WPARAM wParam, LPARAM lParam)
 {
+	OutputDebugStringA(__FUNCTION__);
 	return TRUE;
 }
 
 LRESULT CAgoraFaceUnityTutorialDlg::onFirstRemoteVideoDecoded(WPARAM wParam, LPARAM lParam)
 {
+	OutputDebugStringA(__FUNCTION__);
 	return TRUE;
 }
 
 LRESULT CAgoraFaceUnityTutorialDlg::onFirstRmoteVideoFrame(WPARAM wParam, LPARAM lParam)
 {
+	OutputDebugStringA(__FUNCTION__);
 	return TRUE;
 }
 
 LRESULT CAgoraFaceUnityTutorialDlg::onUserJoined(WPARAM wParam, LPARAM lParam)
 {
+	OutputDebugStringA(__FUNCTION__);
 	return TRUE;
 }
 
 LRESULT CAgoraFaceUnityTutorialDlg::onUserOff(WPARAM wParam, LPARAM lParam)
 {
+	OutputDebugStringA(__FUNCTION__);
 	return TRUE;
 }
 
 LRESULT CAgoraFaceUnityTutorialDlg::onUserMuteVideo(WPARAM wParam, LPARAM lParam)
 {
+	OutputDebugStringA(__FUNCTION__);
 	return TRUE;
 }
 
 LRESULT CAgoraFaceUnityTutorialDlg::onConnectionLost(WPARAM wParam, LPARAM lParam)
 {
+	OutputDebugStringA(__FUNCTION__);
 	return TRUE;
 }
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker0()
 {
 	// TODO:  在此添加控件通知处理程序代码
-	m_FaceName.SetCurrentBundle(0);
+	m_FaceNama.SetCurrentBundle(0);
 	is_need_draw_landmarks = false;
 }
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker1()
 {
 	// TODO:  在此添加控件通知处理程序代码
-	m_FaceName.SetCurrentBundle(1);
+	m_FaceNama.SetCurrentBundle(1);
 	is_need_draw_landmarks = false;
 }
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker2()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	m_FaceNama.SetCurrentBundle(2);
+	is_need_draw_landmarks = false;
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker3()
 {
 	// TODO:  在此添加控件通知处理程序代码
-	m_FaceName.SetCurrentBundle(2);
+	m_FaceNama.SetCurrentBundle(3);
 	is_need_draw_landmarks = false;
 }
 
@@ -509,7 +582,7 @@ void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker3()
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker4()
 {
 	// TODO:  在此添加控件通知处理程序代码
-	m_FaceName.SetCurrentBundle(3);
+	m_FaceNama.SetCurrentBundle(4);
 	is_need_draw_landmarks = false;
 }
 
@@ -517,7 +590,7 @@ void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker4()
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker5()
 {
 	// TODO:  在此添加控件通知处理程序代码
-	m_FaceName.SetCurrentBundle(4);
+	m_FaceNama.SetCurrentBundle(5);
 	is_need_draw_landmarks = false;
 }
 
@@ -525,7 +598,7 @@ void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker5()
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker6()
 {
 	// TODO:  在此添加控件通知处理程序代码
-	m_FaceName.SetCurrentBundle(5);
+	m_FaceNama.SetCurrentBundle(6);
 	is_need_draw_landmarks = false;
 }
 
@@ -533,7 +606,7 @@ void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker6()
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker7()
 {
 	// TODO:  在此添加控件通知处理程序代码
-	m_FaceName.SetCurrentBundle(6);
+	m_FaceNama.SetCurrentBundle(7);
 	is_need_draw_landmarks = false;
 }
 
@@ -541,7 +614,7 @@ void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker7()
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker8()
 {
 	// TODO:  在此添加控件通知处理程序代码
-	m_FaceName.SetCurrentBundle(7);
+	m_FaceNama.SetCurrentBundle(8);
 	is_need_draw_landmarks = false;
 }
 
@@ -549,92 +622,48 @@ void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonSticker8()
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonFilter0()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	m_FaceNama.m_curFilterIdx = 0;
+	m_FaceNama.UpdateFilter();
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonFilter1()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	m_FaceNama.m_curFilterIdx = 1;
+	m_FaceNama.UpdateFilter();
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonFilter2()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	m_FaceNama.m_curFilterIdx = 2;
+	m_FaceNama.UpdateFilter();
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonFilter3()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	m_FaceNama.m_curFilterIdx = 3;
+	m_FaceNama.UpdateFilter();
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonFilter4()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	m_FaceNama.m_curFilterIdx = 4;
+	m_FaceNama.UpdateFilter();
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedButtonFilter5()
 {
 	// TODO:  在此添加控件通知处理程序代码
-}
-
-
-DWORD CAgoraFaceUnityTutorialDlg::ThreadFaceUntiyDataProc(LPVOID lpParameter)
-{
-	CAgoraFaceUnityTutorialDlg *pObj = (CAgoraFaceUnityTutorialDlg*)lpParameter;
-	CYUVTrans yuvTrans;
-	LPBYTE yuvBuffer = new BYTE[0x800000];
-	SIZE_T yuvBufferLen = pObj->m_nWidth * pObj->m_nHeight * 3 / 2;
-	CFileIO fileMedia;
-#ifdef _DEBUG
-	fileMedia.openMedia("D:\\Agora_programe\\baluoteli\\Agora-FaceUnity-Tutorial-Windows\\Debug\\cameraYuv.yuv");
-#else
-	fileMedia.openMedia("D:\\Agora_programe\\baluoteli\\Agora-FaceUnity-Tutorial-Windows\\Release\\cameraYuv.yuv");
-#endif
-
-	if (pObj){
-
-		CHighResoluteFrameCtrl framectrl;
-		framectrl.setInterval(40);
-
-		while (!pObj->m_bTerminated){
-			framectrl.wait();
-
-			std::tr1::shared_ptr<unsigned char> frame = pObj->m_FaceName.QueryFrame();
-#if 0
-			if (!frame)
-				OutputDebugStringA("QueryFrame failed..\n");
-
-			if ( !yuvTrans.RGB24ToI420((LPBYTE)frame.get(), yuvBuffer, yuvBufferLen, pObj->m_nWidth, pObj->m_nHeight))
-				OutputDebugStringA("RGB24ToI420 failed..\n");
-
-			std::tr1::shared_ptr<unsigned char> frameYUV = (std::tr1::shared_ptr<unsigned char>)yuvBuffer;
-			pObj->m_FaceName.RenderItems(frameYUV);
-
-			fileMedia.write((char*)frameYUV.get(), yuvBufferLen);
-			fileMedia.close();
-#else
-			pObj->m_FaceName.RenderItems(frame);
-			int rgbaLen = pObj->m_nWidth * pObj->m_nHeight * 4;
-			pObj->m_openGl.Render(frame);
-
-			std::tr1::shared_ptr<unsigned char> frameYUV1 = pObj->m_FaceName.ConvertBetweenBGRAandRGBA(frame);
-			fileMedia.write((char*)frameYUV1.get(), rgbaLen);
-
-			//pObj->Invalidate(FALSE);
-#endif
-		}
-	}
-
-	fileMedia.close();
-	if (yuvBuffer)
-		delete[] yuvBuffer;
-	yuvBufferLen = 0;
-
-	return TRUE;
+	m_FaceNama.m_curFilterIdx = 5;
+	m_FaceNama.UpdateFilter();
 }
 
 void CAgoraFaceUnityTutorialDlg::OnClose()
@@ -655,10 +684,29 @@ void CAgoraFaceUnityTutorialDlg::OnClose()
 
 void CAgoraFaceUnityTutorialDlg::OnTimer(UINT_PTR nIDEvent)
 {
-	if (nIDEvent == 1){
+	if (nIDEvent == 1 && m_isJoinChannel){
+		std::tr1::shared_ptr<unsigned char> m_sharedCaptureFrame = m_FaceNama.QueryFrame();
 
-		std::tr1::shared_ptr<unsigned char>frame;
-	//	m_openGl.Render(frame);
+		if (m_sharedCaptureFrame){
+			
+			m_FaceNama.RenderItems(m_sharedCaptureFrame);
+			unsigned char* src_frame = m_sharedCaptureFrame.get();
+			unsigned char* pBuffer_dst_y = m_lpBufferYUV;
+			int ndst_stride_y = m_nWidth;
+			unsigned char* pBuffer_dst_u = m_lpBufferYUV + m_nWidth * m_nHeight;
+			int ndst_stride_u = m_nWidth / 2;
+			unsigned char* pBuffer_dst_v = m_lpBufferYUV + m_nWidth * m_nHeight  + m_nWidth * m_nHeight /4;
+			int ndst_stride_v = m_nWidth / 2;
+
+			unsigned char* pBuffer_dst_y_rotate180 = m_lpBufferYUVRotate;
+			unsigned char* pBuffer_dst_u_rotate180 = m_lpBufferYUVRotate + m_nWidth * m_nHeight;
+			unsigned char* pBuffer_dst_v_rotate180 = m_lpBufferYUVRotate + m_nWidth * m_nHeight + m_nWidth * m_nHeight / 4;
+			
+			libyuv::ARGBToI420((unsigned char*)src_frame, m_nWidth * 4, pBuffer_dst_y, ndst_stride_y, pBuffer_dst_u, ndst_stride_u, pBuffer_dst_v, ndst_stride_v, m_nWidth, m_nHeight);
+			libyuv::I420Rotate(pBuffer_dst_y, ndst_stride_y, pBuffer_dst_u, ndst_stride_u, pBuffer_dst_v, ndst_stride_v,pBuffer_dst_y_rotate180,ndst_stride_y,pBuffer_dst_u_rotate180,ndst_stride_u,pBuffer_dst_v_rotate180,ndst_stride_v,
+				m_nWidth, m_nHeight, libyuv::RotationMode::kRotate180);
+			CVideoPackageQueue::GetInstance()->PushVideoPackage(m_lpBufferYUVRotate, m_nLenYUV);
+		}
 	}
 
 	CDialogEx::OnTimer(nIDEvent);
@@ -667,11 +715,54 @@ void CAgoraFaceUnityTutorialDlg::OnTimer(UINT_PTR nIDEvent)
 void CAgoraFaceUnityTutorialDlg::OnBnClickedCheckSticker()
 {
 	// TODO:  在此添加控件通知处理程序代码
-
+	BOOL bRes = m_BtnCheckSticker.GetCheck();
+	m_FaceNama.m_isDrawProp = bRes;
 }
 
 
 void CAgoraFaceUnityTutorialDlg::OnBnClickedCheckBeauty()
 {
 	// TODO:  在此添加控件通知处理程序代码
+	BOOL bRes = m_BtnCheckBeauty.GetCheck();
+	m_FaceNama.m_isBeautyOn = bRes;
+}
+
+void CAgoraFaceUnityTutorialDlg::OnBnClickedCheckFilter()
+{
+	// TODO:  在此添加控件通知处理程序代码
+	BOOL bRes = m_BtnCheckFilter.GetCheck();
+	m_FaceNama.m_isBeautyOn = bRes;
+}
+
+
+void CAgoraFaceUnityTutorialDlg::OnNMCustomdrawBeauty0(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMCUSTOMDRAW pNMCD = reinterpret_cast<LPNMCUSTOMDRAW>(pNMHDR);
+	// TODO:  在此添加控件通知处理程序代码
+	*pResult = 0;
+
+	m_FaceNama.m_curBlurLevel = m_SliderBeautyBlur.GetPos() / 100.0f;
+	m_FaceNama.UpdateBeauty();
+}
+
+
+void CAgoraFaceUnityTutorialDlg::OnNMCustomdrawBeauty1(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMCUSTOMDRAW pNMCD = reinterpret_cast<LPNMCUSTOMDRAW>(pNMHDR);
+	// TODO:  在此添加控件通知处理程序代码
+	*pResult = 0;
+
+	m_FaceNama.m_curColorLevel = m_SliderBeautyColor.GetPos() / 100.0f;
+	m_FaceNama.UpdateBeauty();
+}
+
+
+void CAgoraFaceUnityTutorialDlg::OnNMCustomdrawBeauty2(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMCUSTOMDRAW pNMCD = reinterpret_cast<LPNMCUSTOMDRAW>(pNMHDR);
+	// TODO:  在此添加控件通知处理程序代码
+	*pResult = 0;
+
+	m_FaceNama.m_redLevel =  m_SliderBeautyRed.GetPos() / 100.0f;
+	m_FaceNama.UpdateBeauty();
 }

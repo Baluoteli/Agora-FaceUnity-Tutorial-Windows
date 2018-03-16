@@ -43,11 +43,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\AgoraSDK\include;..\ThridParty\DirectShow\Include;..\ThridParty\GL1;..\openssl\include;..\FaceUnitySDK\include</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);..\AgoraSDK\lib;..\ThridParty\DirectShow\Lib\X86;..\ThridParty\GL1;..\openssl\lib;..\FaceUnitySDK\Win32</LibraryPath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\AgoraSDK\include;..\ThridParty\DirectShow\Include;..\ThridParty\GL1;..\openssl\include;..\FaceUnitySDK\include;libYUV</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);..\AgoraSDK\lib;..\ThridParty\DirectShow\Lib\X86;..\ThridParty\GL1;..\openssl\lib;..\FaceUnitySDK\Win32;libYUV\Debug</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\AgoraSDK\include;..\ThridParty\DirectShow\Include;..\ThridParty\GL1;..\openssl\include;..\FaceUnitySDK\include;libYUV</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);..\AgoraSDK\lib;..\ThridParty\DirectShow\Lib\X86;..\ThridParty\GL1;..\openssl\lib;..\FaceUnitySDK\Win32;libYUV\Release</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -60,8 +62,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>yuv.lib</AdditionalDependencies>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -89,6 +90,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>yuv.lib</AdditionalDependencies>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -118,6 +120,7 @@
     <ClInclude Include="AgoraOpenGL.h" />
     <ClInclude Include="AGResourceVisitor.h" />
     <ClInclude Include="AGSliderCtrl.h" />
+    <ClInclude Include="BufferQueue.h" />
     <ClInclude Include="CameraDS.h" />
     <ClInclude Include="commonfun.h" />
     <ClInclude Include="DynamicKey5.h" />
@@ -132,6 +135,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="utils.h" />
+    <ClInclude Include="VideoPackageQueue.h" />
     <ClInclude Include="YUVTrans.h" />
   </ItemGroup>
   <ItemGroup>
@@ -147,6 +151,7 @@
     <ClCompile Include="AgoraOpenGL.cpp" />
     <ClCompile Include="AGResourceVisitor.cpp" />
     <ClCompile Include="AGSliderCtrl.cpp" />
+    <ClCompile Include="BufferQueue.cpp" />
     <ClCompile Include="CameraDS.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -165,6 +170,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="VideoPackageQueue.cpp" />
     <ClCompile Include="YUVTrans.cpp" />
   </ItemGroup>
   <ItemGroup>
